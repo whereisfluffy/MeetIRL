@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pick a Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0a0a0c;
+    --bg2: #141416;
+    --red: #ff3b30;
+    --red-deep: #c8281f;
+    --glass: rgba(255,255,255,0.055);
+    --glass-strong: rgba(255,255,255,0.10);
+    --glass-border: rgba(255,255,255,0.14);
+    --text: #f3f1ee;
+    --text-dim: #9c9a9f;
+    --mint: #3ddc97;
+    --amber: #ffcf3c;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  html,body{
+    background: var(--bg);
+    color: var(--text);
+    font-family:'Inter', sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  .app{
+    position:relative;
+    max-width:680px;
+    margin:0 auto;
+    padding:26px 18px 90px;
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+  /* cinematic backdrop: glow blobs + grain */
+  .backdrop{ position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+  .glow{ position:absolute; border-radius:50%; filter:blur(90px); }
+  .glow1{ width:420px; height:420px; background:radial-gradient(circle, rgba(255,59,48,0.35), transparent 70%); top:-140px; right:-120px; }
+  .glow2{ width:380px; height:380px; background:radial-gradient(circle, rgba(255,59,48,0.16), transparent 70%); bottom:10%; left:-160px; }
+  .grain{
+    position:fixed; inset:0; z-index:1; pointer-events:none;
+    opacity:0.05; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .content{ position:relative; z-index:2; }
+
+  /* Header, editorial corner-label style */
+  .hero{ position:relative; padding-top:6px; margin-bottom:28px; }
+  .corner-labels{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    font-family:'Inter', sans-serif; font-weight:700; font-size:11px;
+    letter-spacing:0.14em; text-transform:uppercase; color:var(--red);
+    margin-bottom:34px;
+  }
+  .corner-labels span.dim{ color:var(--text-dim); }
+  h1.headline{
+    font-family:'Inter', sans-serif;
+    font-weight:900;
+    font-size:52px;
+    line-height:0.96;
+    letter-spacing:-0.02em;
+    text-transform:uppercase;
+    margin:0 0 16px;
+    color:var(--text);
+  }
+  h1.headline .slash{ color:var(--red); }
+  .sub{
+    font-size:15px;
+    line-height:1.6;
+    color:var(--text-dim);
+    margin:0 0 26px;
+    max-width:42ch;
+  }
+
+  /* Mood filter */
+  .moods{
+    display:flex;
+    gap:8px;
+    overflow-x:auto;
+    padding-bottom:6px;
+    margin-bottom:26px;
+    scrollbar-width:none;
+  }
+  .moods::-webkit-scrollbar{ display:none; }
+  .chip{
+    flex:0 0 auto;
+    font-family:'Inter', sans-serif;
+    font-weight:600;
+    font-size:12px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    padding:9px 15px;
+    border-radius:999px;
+    border:1px solid var(--glass-border);
+    background:var(--glass);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    color:var(--text);
+    cursor:pointer;
+    white-space:nowrap;
+    transition:all .15s ease;
+    user-select:none;
+  }
+  .chip:hover{ border-color:rgba(255,255,255,0.35); }
+  .chip.active{
+    background:var(--red);
+    border-color:var(--red);
+    color:#fff;
+  }
+
+  /* Glass plan cards */
+  .tickets{ display:flex; flex-direction:column; gap:20px; }
+  .ticket{
+    position:relative;
+    background:linear-gradient(160deg, var(--glass-strong), var(--glass));
+    backdrop-filter:blur(22px);
+    -webkit-backdrop-filter:blur(22px);
+    border:1px solid var(--glass-border);
+    border-radius:14px;
+    box-shadow:0 20px 40px -20px rgba(0,0,0,0.6);
+  }
+  @media(min-width:600px){
+    .tickets .ticket:nth-child(even){ margin-left:34px; }
+    .tickets .ticket:nth-child(odd){ margin-right:34px; }
+  }
+  .ticket-top{ padding:22px 22px 18px; }
+  .mood-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-family:'Inter', sans-serif;
+    font-weight:700;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    background:transparent;
+    color:var(--red);
+    padding:5px 0;
+    margin-bottom:12px;
+  }
+  .mood-badge::before{ content:''; width:6px; height:6px; border-radius:50%; background:var(--red); display:inline-block; }
+  .ticket h3{
+    font-family:'Inter', sans-serif;
+    font-weight:800;
+    letter-spacing:-0.01em;
+    font-size:23px;
+    margin:0 0 8px;
+    line-height:1.15;
+    text-transform:uppercase;
+  }
+  .ticket p.desc{
+    font-size:14px;
+    line-height:1.55;
+    color:var(--text-dim);
+    margin:0;
+  }
+  .ticket-divider{
+    border-top:1px solid rgba(255,255,255,0.12);
+    margin:0 22px;
+  }
+  .ticket-bottom{ padding:16px 22px 22px; }
+  .slots-label{
+    font-family:'Inter', sans-serif;
+    font-weight:700;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.1em;
+    color:var(--text-dim);
+    margin-bottom:10px;
+  }
+  .slots{ display:flex; flex-wrap:wrap; gap:8px; }
+  .slot-btn{
+    font-family:'Space Mono', monospace;
+    font-size:13px;
+    padding:9px 13px;
+    border-radius:8px;
+    border:1px solid rgba(255,255,255,0.28);
+    background:transparent;
+    color:var(--text);
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .slot-btn:hover{ background:var(--red); border-color:var(--red); color:#fff; }
+  .slot-btn.pending{
+    border-color:rgba(255,255,255,0.14);
+    color:rgba(255,255,255,0.32);
+    cursor:not-allowed;
+    text-decoration:line-through;
+  }
+  .slot-btn.pending:hover{ background:transparent; border-color:rgba(255,255,255,0.14); color:rgba(255,255,255,0.32); }
+  .fully-booked{
+    font-family:'Inter', sans-serif;
+    font-size:13px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--red);
+  }
+  .empty-state{
+    text-align:center;
+    padding:60px 20px;
+    color:var(--text-dim);
+  }
+  .empty-state .big{ font-size:40px; margin-bottom:10px; }
+
+  /* Footer utility row */
+  .footer-row{
+    display:flex;
+    justify-content:center;
+    gap:18px;
+    margin-top:36px;
+    position:relative;
+    z-index:1;
+  }
+  .ghost-btn{
+    background:none;
+    border:none;
+    color:var(--text-dim);
+    font-family:'Inter', sans-serif;
+    font-weight:600;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    cursor:pointer;
+    text-decoration:underline;
+    text-underline-offset:3px;
+  }
+  .ghost-btn:hover{ color:var(--red); }
+
+  /* Modal */
+  .overlay{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.65);
+    backdrop-filter:blur(4px);
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:50;
+  }
+  @media(min-width:640px){
+    .overlay{ align-items:center; }
+  }
+  .modal{
+    background:linear-gradient(160deg, rgba(30,30,32,0.92), rgba(16,16,18,0.92));
+    backdrop-filter:blur(24px);
+    -webkit-backdrop-filter:blur(24px);
+    border:1px solid var(--glass-border);
+    color:var(--text);
+    width:100%;
+    max-width:460px;
+    border-radius:18px 18px 0 0;
+    padding:26px 22px 28px;
+    max-height:88vh;
+    overflow-y:auto;
+  }
+  @media(min-width:640px){
+    .modal{ border-radius:18px; }
+  }
+  .modal h4{
+    font-family:'Inter', sans-serif;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:-0.01em;
+    font-size:20px;
+    margin:0 0 4px;
+  }
+  .modal .modal-sub{
+    font-size:13px;
+    color:var(--text-dim);
+    margin:0 0 18px;
+    font-family:'Space Mono', monospace;
+  }
+  .field{ margin-bottom:14px; }
+  .field label{
+    display:block;
+    font-size:11px;
+    font-weight:700;
+    margin-bottom:6px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text-dim);
+  }
+  .field input, .field textarea, .field select{
+    width:100%;
+    padding:11px 13px;
+    border-radius:9px;
+    border:1px solid rgba(255,255,255,0.18);
+    font-family:'Inter', sans-serif;
+    font-size:14px;
+    background:rgba(255,255,255,0.06);
+    color:var(--text);
+  }
+  .field input::placeholder, .field textarea::placeholder{ color:rgba(255,255,255,0.32); }
+  .field textarea{ resize:vertical; min-height:60px; }
+  .btn-row{ display:flex; gap:10px; margin-top:18px; }
+  .btn{
+    flex:1;
+    padding:13px 16px;
+    border-radius:10px;
+    border:none;
+    font-family:'Inter', sans-serif;
+    font-weight:700;
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    cursor:pointer;
+    transition:transform .1s ease;
+  }
+  .btn:active{ transform:scale(0.97); }
+  .btn-primary{ background:var(--red); color:#fff; }
+  .btn-secondary{ background:rgba(255,255,255,0.08); color:var(--text); border:1px solid rgba(255,255,255,0.14); }
+  .btn-mint{ background:var(--mint); color:#0a0a0c; }
+  .btn:disabled{ opacity:0.5; cursor:not-allowed; }
+
+  .confirm-screen{ text-align:center; padding:20px 4px 4px; }
+  .confirm-screen .stamp{
+    font-size:44px;
+    margin-bottom:8px;
+  }
+  .confirm-code{
+    display:inline-block;
+    font-family:'Space Mono', monospace;
+    font-size:20px;
+    font-weight:700;
+    letter-spacing:0.15em;
+    background:rgba(255,59,48,0.15);
+    border:1px solid var(--red);
+    color:#ff7a70;
+    padding:8px 16px;
+    border-radius:9px;
+    margin:12px 0;
+  }
+
+  /* Admin */
+  .admin-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:18px;
+  }
+  .tabs{ display:flex; gap:8px; margin-bottom:18px; }
+  .tab{
+    font-family:'Inter', sans-serif;
+    font-weight:600;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    padding:8px 16px;
+    border-radius:999px;
+    border:1px solid var(--glass-border);
+    background:transparent;
+    color:var(--text);
+    cursor:pointer;
+  }
+  .tab.active{ background:var(--red); color:#fff; border-color:var(--red); }
+  .badge-count{
+    background:#fff;
+    color:var(--red);
+    font-size:10px;
+    font-weight:800;
+    border-radius:999px;
+    padding:1px 6px;
+    margin-left:6px;
+  }
+  .admin-card{
+    background:linear-gradient(160deg, var(--glass-strong), var(--glass));
+    backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+    border:1px solid var(--glass-border);
+    color:var(--text);
+    border-radius:14px;
+    padding:16px 18px;
+    margin-bottom:14px;
+  }
+  .admin-card h4{ font-family:'Inter',sans-serif; font-weight:800; text-transform:uppercase; margin:0 0 4px; font-size:17px;}
+  .admin-card .meta{ font-family:'Space Mono', monospace; font-size:12px; color:var(--text-dim); margin-bottom:8px;}
+  .req-status{
+    display:inline-block;
+    font-family:'Inter', sans-serif;
+    font-weight:700;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    padding:3px 9px;
+    border-radius:999px;
+    margin-bottom:10px;
+  }
+  .req-status.pending{ background:var(--amber); color:#1a1200; }
+  .req-status.confirmed{ background:var(--mint); color:#062; }
+  .req-status.declined{ background:rgba(255,255,255,0.12); color:var(--text-dim); }
+  .req-status.proposed{ background:var(--red); color:#fff; }
+  .admin-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;}
+  .admin-actions .btn{ flex:none; padding:9px 14px; font-size:12px; }
+  .slot-row{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+  .slot-row input{ flex:1; }
+  .remove-x{
+    background:none; border:none; color:var(--red); font-size:18px; cursor:pointer; line-height:1;
+  }
+  .add-slot-btn{
+    font-family:'Inter', sans-serif;
+    font-weight:600;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    background:none;
+    border:1px dashed rgba(255,255,255,0.28);
+    border-radius:9px;
+    padding:9px 12px;
+    cursor:pointer;
+    color:var(--text-dim);
+    width:100%;
+  }
+  .add-slot-btn:hover{ border-color:var(--red); color:var(--red); }
+  .plan-slot-tag{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-family:'Space Mono', monospace;
+    font-size:12px;
+    background:rgba(255,255,255,0.08);
+    padding:5px 10px;
+    border-radius:7px;
+    margin:0 6px 6px 0;
+    border:1px solid rgba(255,255,255,0.12);
+  }
+  .plan-slot-tag.booked{ background:rgba(61,220,151,0.18); border-color:var(--mint); }
+  .plan-slot-tag.pending-tag{ background:rgba(255,207,60,0.18); border-color:var(--amber); }
+
+  /* Calendar */
+  .cal-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .cal-nav-btn{
+    background:var(--glass); border:1px solid var(--glass-border); color:var(--text);
+    width:34px; height:34px; border-radius:8px; cursor:pointer; font-size:16px; line-height:1;
+  }
+  .cal-nav-btn:hover{ border-color:var(--red); color:var(--red); }
+  .cal-month-label{ font-weight:800; text-transform:uppercase; letter-spacing:0.04em; font-size:14px; }
+  .cal-grid{
+    background:linear-gradient(160deg, var(--glass-strong), var(--glass));
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    border:1px solid var(--glass-border); border-radius:14px; padding:12px; margin-bottom:20px;
+  }
+  .cal-row{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+  .cal-row.cal-head{ margin-bottom:6px; }
+  .cal-cell{
+    aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    border-radius:8px; cursor:pointer; position:relative; font-size:13px;
+  }
+  .cal-cell.head{ font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-dim); font-weight:700; cursor:default; aspect-ratio:auto; padding:4px 0; }
+  .cal-cell.empty{ cursor:default; }
+  .cal-cell:not(.head):not(.empty):hover{ background:rgba(255,255,255,0.08); }
+  .cal-cell.today .cal-daynum{ color:var(--red); font-weight:800; }
+  .cal-cell.selected{ background:var(--red); }
+  .cal-cell.selected .cal-daynum{ color:#fff; font-weight:800; }
+  .cal-daynum{ font-family:'Space Mono',monospace; }
+  .cal-dots{ display:flex; gap:2px; margin-top:2px; height:5px; }
+  .cal-dot{ width:5px; height:5px; border-radius:50%; }
+  .cal-day-panel-label{
+    font-family:'Inter'; font-weight:700; text-transform:uppercase; font-size:12px;
+    letter-spacing:0.08em; color:var(--text-dim); margin:4px 0 12px;
+  }
+  .quick-select{
+    width:100%; padding:11px 13px; border-radius:9px; border:1px solid rgba(255,255,255,0.18);
+    font-family:'Inter', sans-serif; font-size:14px; background:rgba(255,255,255,0.06); color:var(--text);
+    margin-bottom:12px;
+  }
+  .quick-select option{ background:#1a1a1c; }
+
+  .hidden{ display:none !important; }
+
+  ::selection{ background:var(--red); color:#fff; }
+</style>
+</head>
+<body>
+
+<div class="backdrop">
+  <div class="glow glow1"></div>
+  <div class="glow glow2"></div>
+</div>
+<div class="grain"></div>
+
+<div class="app">
+  <div class="content" id="content"></div>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+/* ---------- storage layer: Supabase (works from any browser, once deployed) ---------- */
+const SUPABASE_URL = "https://urkcbxzawqdgcsnierml.supabase.co";
+const SUPABASE_KEY = "sb_publishable_Pr6--wfudJ7RONBIdULWYQ_AtwQahhM";
+
+const db = {
+  async get(key){
+    try{
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/kv_store?key=eq.${encodeURIComponent(key)}&select=value`, {
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`
+        }
+      });
+      if(!res.ok) return null;
+      const rows = await res.json();
+      return rows.length ? rows[0].value : null;
+    }catch(e){ console.error('supabase get failed', e); return null; }
+  },
+  async set(key, value){
+    try{
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/kv_store?on_conflict=key`, {
+        method: 'POST',
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify([{ key, value }])
+      });
+      return res.ok;
+    }catch(e){ console.error('supabase set failed', e); return false; }
+  }
+};
+
+/* ---------- constants ---------- */
+const MOOD_EMOJI = {
+  chill:'😌', sports:'🏓', outdoors:'🌳', music:'🎸', relax:'🧘'
+};
+const CATEGORY_COLOR = {
+  chill:'#ffcf3c', sports:'#3ddc97', outdoors:'#4da3ff', music:'#ff3b30', relax:'#c77dff'
+};
+function emojiFor(mood){
+  return MOOD_EMOJI[mood.toLowerCase().trim()] || '✨';
+}
+function colorFor(mood){
+  return CATEGORY_COLOR[mood.toLowerCase().trim()] || '#ffffff';
+}
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function shortCode(){ return Math.random().toString(36).slice(2,6).toUpperCase(); }
+
+/* ---------- date helpers ---------- */
+function pad2(n){ return n<10 ? '0'+n : ''+n; }
+function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function daysFromNow(n){ const d=new Date(); d.setDate(d.getDate()+n); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function parseDateStr(dateStr){ const [y,m,d]=dateStr.split('-').map(Number); return new Date(y, m-1, d); }
+function formatDateLabel(dateStr){
+  const d = parseDateStr(dateStr);
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}`;
+}
+function formatTimeLabel(timeStr){
+  if(!timeStr) return '';
+  let [h,m] = timeStr.split(':').map(Number);
+  const ampm = h>=12 ? 'PM' : 'AM';
+  let h12 = h%12; if(h12===0) h12=12;
+  return `${h12}:${pad2(m)} ${ampm}`;
+}
+function formatSlot(slot){
+  if(!slot.date) return slot.time ? formatTimeLabel(slot.time) : '';
+  return `${formatDateLabel(slot.date)} · ${formatTimeLabel(slot.time)}`;
+}
+function getMonthMatrix(year, month){
+  const firstDay = new Date(year, month, 1);
+  const startOffset = (firstDay.getDay()+6)%7; // Monday-first
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const cells = [];
+  for(let i=0;i<startOffset;i++) cells.push(null);
+  for(let d=1; d<=daysInMonth; d++) cells.push(`${year}-${pad2(month+1)}-${pad2(d)}`);
+  while(cells.length%7!==0) cells.push(null);
+  const weeks = [];
+  for(let i=0;i<cells.length;i+=7) weeks.push(cells.slice(i,i+7));
+  return weeks;
+}
+
+/* ---------- auth (Supabase) ---------- */
+async function signIn(email, password){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method:'POST',
+      headers:{ apikey: SUPABASE_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if(!res.ok) return { ok:false, error: data.error_description || data.msg || 'Login failed.' };
+    const session = {
+      access_token: data.access_token,
+      expires_at: Date.now() + (data.expires_in*1000)
+    };
+    localStorage.setItem('admin_session', JSON.stringify(session));
+    return { ok:true };
+  }catch(e){ return { ok:false, error:'Network error. Try again.' }; }
+}
+function getSession(){
+  try{
+    const raw = localStorage.getItem('admin_session');
+    if(!raw) return null;
+    const session = JSON.parse(raw);
+    if(!session.expires_at || session.expires_at < Date.now()) return null;
+    return session;
+  }catch(e){ return null; }
+}
+function signOutAdmin(){
+  localStorage.removeItem('admin_session');
+}
+
+/* ---------- state ---------- */
+let plans = [];
+let requests = [];
+let activeMoodFilter = 'all';
+let view = 'public'; // public | admin
+let publicTab = 'list'; // list | calendar
+let adminTab = 'plans'; // plans | requests | calendar
+let unlocked = false;
+const now = new Date();
+let calYear = now.getFullYear();
+let calMonth = now.getMonth();
+let selectedDate = null;
+
+/* ---------- data load/save ---------- */
+const SEED_VERSION = "3";
+async function loadAll(){
+  const storedVersion = await db.get('seedVersion');
+  if(storedVersion !== SEED_VERSION){
+    plans = seedPlans();
+    requests = [];
+    await db.set('plans', plans);
+    await db.set('requests', requests);
+    await db.set('seedVersion', SEED_VERSION);
+    return;
+  }
+  plans = (await db.get('plans')) || seedPlans();
+  requests = (await db.get('requests')) || [];
+}
+async function savePlans(){ await db.set('plans', plans); render(); }
+async function saveRequests(){ await db.set('requests', requests); render(); }
+
+function seedPlans(){
+  return [
+    // Chill
+    {
+      id: uid(),
+      title: "Natural wine bar",
+      description: "A glass or two of something interesting. No rush, no agenda.",
+      mood: "chill",
+      slots: [
+        {id: uid(), date: daysFromNow(2), time: "19:30", status:'open'},
+        {id: uid(), date: daysFromNow(9), time: "20:00", status:'open'},
+      ]
+    },
+    {
+      id: uid(),
+      title: "Grab a coffee",
+      description: "Easy, low-key, short and sweet if it needs to be.",
+      mood: "chill",
+      slots: [
+        {id: uid(), date: daysFromNow(6), time: "10:00", status:'open'},
+      ]
+    },
+    {
+      id: uid(),
+      title: "Markthalle Neun",
+      description: "Street food and drinks in Kreuzberg's favourite market hall.",
+      mood: "chill",
+      slots: [
+        {id: uid(), date: daysFromNow(4), time: "19:00", status:'open'},
+      ]
+    },
+    // Sports
+    {
+      id: uid(),
+      title: "Bouldering",
+      description: "Climbing, some falling, figuring out beta together.",
+      mood: "sports",
+      slots: [
+        {id: uid(), date: daysFromNow(2), time: "16:00", status:'open'},
+      ]
+    },
+    {
+      id: uid(),
+      title: "Padel",
+      description: "Fast, a little competitive, easy to laugh through.",
+      mood: "sports",
+      slots: [
+        {id: uid(), date: daysFromNow(10), time: "11:00", status:'open'},
+      ]
+    },
+    {
+      id: uid(),
+      title: "Gym session",
+      description: "A proper sweat session — bring your own playlist.",
+      mood: "sports",
+      slots: [
+        {id: uid(), date: daysFromNow(15), time: "18:30", status:'open'},
+      ]
+    },
+    // Outdoors
+    {
+      id: uid(),
+      title: "Picnic at a park",
+      description: "Blanket, snacks, whatever park looks good that day.",
+      mood: "outdoors",
+      slots: [
+        {id: uid(), date: daysFromNow(9), time: "13:00", status:'open'},
+      ]
+    },
+    {
+      id: uid(),
+      title: "Walking by the canal",
+      description: "A slow walk along the water — good for actually talking.",
+      mood: "outdoors",
+      slots: [
+        {id: uid(), date: daysFromNow(17), time: "17:00", status:'open'},
+      ]
+    },
+    {
+      id: uid(),
+      title: "Going to a lake",
+      description: "Swim if it's warm enough, sit and talk if it's not.",
+      mood: "outdoors",
+      slots: [
+        {id: uid(), date: daysFromNow(23), time: "12:00", status:'open'},
+      ]
+    },
+    // Music
+    {
+      id: uid(),
+      title: "Going to a gig",
+      description: "Live music, standing room, minimal small talk required.",
+      mood: "music",
+      slots: [
+        {id: uid(), date: daysFromNow(5), time: "21:00", status:'open'},
+      ]
+    },
+    {
+      id: uid(),
+      title: "Open mic night",
+      description: "Low-key night out — maybe someone will be brave enough to go up.",
+      mood: "music",
+      slots: [
+        {id: uid(), date: daysFromNow(13), time: "20:30", status:'open'},
+      ]
+    },
+    {
+      id: uid(),
+      title: "Playing music together",
+      description: "Bring an instrument or just listen. Casual, no pressure.",
+      mood: "music",
+      slots: [
+        {id: uid(), date: daysFromNow(20), time: "16:00", status:'open'},
+      ]
+    },
+    // Relax
+    {
+      id: uid(),
+      title: "Sauna",
+      description: "Heat, quiet, zero pressure to perform.",
+      mood: "relax",
+      slots: [
+        {id: uid(), date: daysFromNow(3), time: "18:00", status:'open'},
+      ]
+    },
+    {
+      id: uid(),
+      title: "Sound bath",
+      description: "Lie down, zone out, let the sound do the work.",
+      mood: "relax",
+      slots: [
+        {id: uid(), date: daysFromNow(12), time: "10:00", status:'open'},
+      ]
+    },
+    {
+      id: uid(),
+      title: "Meditation class",
+      description: "A guided session — good for slowing things down together.",
+      mood: "relax",
+      slots: [
+        {id: uid(), date: daysFromNow(19), time: "19:00", status:'open'},
+      ]
+    }
+  ];
+}
+
+/* ---------- render ---------- */
+function render(){
+  const el = document.getElementById('content');
+  el.innerHTML = view === 'public' ? renderPublic() : renderAdmin();
+  attachHandlers();
+}
+
+function renderPublic(){
+  return `
+    <div class="hero">
+      <div class="corner-labels">
+        <span>Let's meet IRL</span>
+        <span class="dim">Berlin</span>
+      </div>
+      <h1 class="headline">Pick a plan<span class="slash">\\</span>pick a day</h1>
+      <p class="sub">Here's what I'm up for this month. Grab a spot that fits your mood — I'll confirm quick.</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab ${publicTab==='list'?'active':''}" data-public-tab="list">Plans</button>
+      <button class="tab ${publicTab==='calendar'?'active':''}" data-public-tab="calendar">Calendar</button>
+    </div>
+
+    ${publicTab==='list' ? renderPublicList() : renderPublicCalendar()}
+
+    <div class="footer-row">
+      <button class="ghost-btn" id="checkStatusBtn">Check my request</button>
+      <button class="ghost-btn" id="adminEntryBtn">·</button>
+    </div>
+  `;
+}
+
+function renderPublicList(){
+  const moods = ['all', ...new Set(plans.map(p=>p.mood.toLowerCase().trim()))];
+  const filtered = activeMoodFilter === 'all' ? plans : plans.filter(p=>p.mood.toLowerCase().trim()===activeMoodFilter);
+
+  const chipsHtml = moods.map(m => `
+    <div class="chip ${activeMoodFilter===m?'active':''}" data-mood="${m}">
+      ${m==='all' ? 'All plans' : emojiFor(m)+' '+m.charAt(0).toUpperCase()+m.slice(1)}
+    </div>
+  `).join('');
+
+  const ticketsHtml = filtered.length ? filtered.map(p => renderTicket(p)).join('') : `
+    <div class="empty-state">
+      <div class="big">—</div>
+      No plans in this mood yet. Check back soon.
+    </div>
+  `;
+
+  return `
+    <div class="moods">${chipsHtml}</div>
+    <div class="tickets">${ticketsHtml}</div>
+  `;
+}
+
+function renderPublicCalendar(){
+  const gridHtml = renderCalendarGrid(calYear, calMonth, selectedDate);
+  let dayPanel = '';
+  if(selectedDate){
+    const matches = ticketsForDate(selectedDate);
+    dayPanel = `
+      <div class="cal-day-panel-label">${formatDateLabel(selectedDate)}</div>
+      ${matches.length ? matches.map(m => renderTicket(m.plan, m.slots)).join('') : `
+        <div class="empty-state"><div class="big">—</div>Nothing planned this day yet.</div>
+      `}
+    `;
+  } else {
+    dayPanel = `<div class="empty-state"><div class="big">—</div>Tap a day to see what's planned.</div>`;
+  }
+  return `${gridHtml}${dayPanel}`;
+}
+
+function ticketsForDate(dateStr){
+  const results = [];
+  plans.forEach(p=>{
+    const matching = p.slots.filter(s=>s.date===dateStr);
+    if(matching.length) results.push({plan:p, slots:matching});
+  });
+  return results;
+}
+
+function renderCalendarGrid(year, month, selDate){
+  const weeks = getMonthMatrix(year, month);
+  const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const dayLabels=['Mo','Tu','We','Th','Fr','Sa','Su'];
+  const dotsByDate = {};
+  plans.forEach(p=>{
+    const color = colorFor(p.mood);
+    p.slots.forEach(s=>{
+      if(!s.date) return;
+      if(!dotsByDate[s.date]) dotsByDate[s.date] = new Set();
+      dotsByDate[s.date].add(color);
+    });
+  });
+  const todayS = todayStr();
+  const weeksHtml = weeks.map(week => `
+    <div class="cal-row">
+      ${week.map(dateStr => {
+        if(!dateStr) return `<div class="cal-cell empty"></div>`;
+        const dayNum = Number(dateStr.split('-')[2]);
+        const dots = dotsByDate[dateStr] ? [...dotsByDate[dateStr]] : [];
+        const isToday = dateStr===todayS;
+        const isSelected = dateStr===selDate;
+        return `<div class="cal-cell ${isSelected?'selected':''} ${isToday?'today':''}" data-cal-date="${dateStr}">
+          <span class="cal-daynum">${dayNum}</span>
+          <div class="cal-dots">${dots.slice(0,4).map(c=>`<span class="cal-dot" style="background:${c}"></span>`).join('')}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  `).join('');
+  return `
+    <div class="cal-nav">
+      <button class="cal-nav-btn" data-cal-prev="1">‹</button>
+      <span class="cal-month-label">${monthNames[month]} ${year}</span>
+      <button class="cal-nav-btn" data-cal-next="1">›</button>
+    </div>
+    <div class="cal-grid">
+      <div class="cal-row cal-head">${dayLabels.map(l=>`<div class="cal-cell head">${l}</div>`).join('')}</div>
+      ${weeksHtml}
+    </div>
+  `;
+}
+
+function renderTicket(plan, slotsOverride){
+  const slotList = slotsOverride || plan.slots;
+  const allBooked = slotList.every(s=>s.status==='booked');
+  const slotsHtml = allBooked
+    ? `<div class="fully-booked">Fully booked — check back later</div>`
+    : slotList.map(s => `
+        <button class="slot-btn ${s.status==='pending'?'pending':''}"
+          data-plan="${plan.id}" data-slot="${s.id}"
+          ${s.status!=='open'?'disabled':''}>
+          ${formatSlot(s)}${s.status==='pending' ? ' · held' : ''}
+        </button>
+      `).join('');
+
+  return `
+    <div class="ticket">
+      <div class="ticket-top">
+        <div class="mood-badge">${plan.mood}</div>
+        <h3>${escapeHtml(plan.title)}</h3>
+        <p class="desc">${escapeHtml(plan.description)}</p>
+      </div>
+      <div class="ticket-divider"></div>
+      <div class="ticket-bottom">
+        <div class="slots-label">Available</div>
+        <div class="slots">${slotsHtml}</div>
+      </div>
+    </div>
+  `;
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.innerText = str;
+  return d.innerHTML;
+}
+
+/* ---------- claim modal ---------- */
+function openClaimModal(planId, slotId){
+  const plan = plans.find(p=>p.id===planId);
+  const slot = plan.slots.find(s=>s.id===slotId);
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+    <div class="overlay" id="claimOverlay">
+      <div class="modal">
+        <h4>${escapeHtml(plan.title)}</h4>
+        <p class="modal-sub">${formatSlot(slot)}</p>
+        <div class="field">
+          <label>Your name</label>
+          <input type="text" id="claimName" placeholder="What should I call you?">
+        </div>
+        <div class="field">
+          <label>Best way to reach you</label>
+          <input type="text" id="claimContact" placeholder="Phone, Instagram, whatever's easiest">
+        </div>
+        <div class="field">
+          <label>Note (optional)</label>
+          <textarea id="claimNote" placeholder="Anything I should know?"></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="claimCancel">Cancel</button>
+          <button class="btn btn-primary" id="claimSubmit">Claim this spot</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('claimCancel').onclick = closeModal;
+  document.getElementById('claimOverlay').onclick = (e)=>{ if(e.target.id==='claimOverlay') closeModal(); };
+  document.getElementById('claimSubmit').onclick = async ()=>{
+    const name = document.getElementById('claimName').value.trim();
+    const contact = document.getElementById('claimContact').value.trim();
+    const note = document.getElementById('claimNote').value.trim();
+    if(!name || !contact){
+      alert('Add your name and a way to reach you so the spot can be confirmed.');
+      return;
+    }
+    const code = shortCode();
+    slot.status = 'pending';
+    requests.push({
+      id: uid(), code, planId: plan.id, planTitle: plan.title,
+      slotId: slot.id, slotLabel: formatSlot(slot),
+      name, contact, note, status:'pending', proposedSlotLabel:null,
+      createdAt: Date.now()
+    });
+    await db.set('plans', plans);
+    await db.set('requests', requests);
+    showConfirmScreen(code);
+  };
+}
+
+function showConfirmScreen(code){
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+    <div class="overlay" id="confirmOverlay">
+      <div class="modal confirm-screen">
+        <div class="stamp">🎉</div>
+        <h4>Sent</h4>
+        <p class="modal-sub" style="margin-bottom:0;">I'll confirm soon. Save this code to check status:</p>
+        <div class="confirm-code">${code}</div>
+        <button class="btn btn-primary" style="width:100%;" id="confirmDone">Done</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('confirmOverlay').onclick = (e)=>{ if(e.target.id==='confirmOverlay'){ closeModal(); render(); } };
+  document.getElementById('confirmDone').onclick = ()=>{ closeModal(); render(); };
+}
+
+function openStatusModal(){
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+    <div class="overlay" id="statusOverlay">
+      <div class="modal">
+        <h4>Check your request</h4>
+        <p class="modal-sub">Enter the code you got when you claimed a spot.</p>
+        <div class="field">
+          <input type="text" id="statusCode" placeholder="e.g. XJ4K" style="text-transform:uppercase;">
+        </div>
+        <div id="statusResult"></div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="statusCancel">Close</button>
+          <button class="btn btn-primary" id="statusLookup">Look up</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('statusCancel').onclick = closeModal;
+  document.getElementById('statusOverlay').onclick = (e)=>{ if(e.target.id==='statusOverlay') closeModal(); };
+  document.getElementById('statusLookup').onclick = ()=>{
+    const code = document.getElementById('statusCode').value.trim().toUpperCase();
+    const req = requests.find(r=>r.code===code);
+    const resEl = document.getElementById('statusResult');
+    if(!req){
+      resEl.innerHTML = `<p style="font-family:'Space Mono',monospace;font-size:13px;color:var(--red);">No request found with that code.</p>`;
+      return;
+    }
+    let statusLine = '';
+    if(req.status==='pending') statusLine = `<span class="req-status pending">pending</span><p>Still waiting for a reply on <strong>${escapeHtml(req.planTitle)}</strong>, ${req.slotLabel}.</p>`;
+    if(req.status==='confirmed') statusLine = `<span class="req-status confirmed">confirmed</span><p>You're set for <strong>${escapeHtml(req.planTitle)}</strong>, ${req.slotLabel} 🎉</p>`;
+    if(req.status==='declined') statusLine = `<span class="req-status declined">not this time</span><p>This one didn't work out — check the main page for other plans.</p>`;
+    if(req.status==='proposed') statusLine = `<span class="req-status proposed">new time proposed</span><p>New time suggested for <strong>${escapeHtml(req.planTitle)}</strong>: <strong>${req.proposedSlotLabel}</strong></p>
+      <div class="btn-row">
+        <button class="btn btn-secondary" id="proposeDecline">Doesn't work</button>
+        <button class="btn btn-mint" id="proposeAccept">Works for me</button>
+      </div>`;
+    resEl.innerHTML = statusLine;
+
+    if(req.status==='proposed'){
+      document.getElementById('proposeAccept').onclick = async ()=>{
+        req.status='confirmed';
+        req.slotLabel = req.proposedSlotLabel;
+        await db.set('requests', requests);
+        closeModal(); render();
+      };
+      document.getElementById('proposeDecline').onclick = async ()=>{
+        req.status='declined';
+        const plan = plans.find(p=>p.id===req.planId);
+        if(plan){ const s = plan.slots.find(sl=>sl.id===req.slotId); if(s) s.status='open'; }
+        await db.set('plans', plans);
+        await db.set('requests', requests);
+        closeModal(); render();
+      };
+    }
+  };
+}
+
+function closeModal(){ document.getElementById('modalRoot').innerHTML=''; }
+
+/* ---------- admin ---------- */
+function openAdminLogin(){
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+    <div class="overlay" id="gateOverlay">
+      <div class="modal">
+        <h4>Admin login</h4>
+        <p class="modal-sub">Sign in to manage plans and requests.</p>
+        <div class="field"><label>Email</label><input type="email" id="gateEmail" placeholder="you@email.com" autocomplete="username"></div>
+        <div class="field"><label>Password</label><input type="password" id="gatePassword" placeholder="Password" autocomplete="current-password"></div>
+        <div id="gateError" style="color:var(--red); font-size:13px; margin:-6px 0 12px;"></div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="gateCancel">Cancel</button>
+          <button class="btn btn-primary" id="gateSubmit">Sign in</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('gateCancel').onclick = closeModal;
+  document.getElementById('gateOverlay').onclick = (e)=>{ if(e.target.id==='gateOverlay') closeModal(); };
+  document.getElementById('gateSubmit').onclick = async ()=>{
+    const email = document.getElementById('gateEmail').value.trim();
+    const password = document.getElementById('gatePassword').value;
+    const btn = document.getElementById('gateSubmit');
+    const errEl = document.getElementById('gateError');
+    if(!email || !password){ errEl.textContent = 'Enter your email and password.'; return; }
+    btn.disabled = true; btn.textContent = 'Signing in…';
+    const result = await signIn(email, password);
+    if(result.ok){
+      unlocked = true; view='admin'; closeModal(); render();
+    } else {
+      errEl.textContent = result.error;
+      btn.disabled = false; btn.textContent = 'Sign in';
+    }
+  };
+}
+
+function renderAdmin(){
+  const pendingCount = requests.filter(r=>r.status==='pending').length;
+  return `
+    <div class="admin-header">
+      <span class="corner-labels" style="margin-bottom:0;"><span>Admin</span></span>
+      <div style="display:flex; gap:14px;">
+        <button class="ghost-btn" id="exitAdmin">Exit</button>
+        <button class="ghost-btn" id="logoutAdmin">Log out</button>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab ${adminTab==='plans'?'active':''}" data-tab="plans">Plans</button>
+      <button class="tab ${adminTab==='requests'?'active':''}" data-tab="requests">Requests ${pendingCount?`<span class="badge-count">${pendingCount}</span>`:''}</button>
+      <button class="tab ${adminTab==='calendar'?'active':''}" data-tab="calendar">Calendar</button>
+    </div>
+    ${adminTab==='plans' ? renderAdminPlans() : adminTab==='requests' ? renderAdminRequests() : renderAdminCalendar()}
+  `;
+}
+
+function renderAdminCalendar(){
+  const gridHtml = renderCalendarGrid(calYear, calMonth, selectedDate);
+  let dayPanel = '';
+  if(selectedDate){
+    const matches = ticketsForDate(selectedDate);
+    dayPanel = `
+      <div class="cal-day-panel-label">${formatDateLabel(selectedDate)}</div>
+      ${matches.length ? matches.map(m => `
+        <div class="admin-card">
+          <h4>${escapeHtml(m.plan.title)}</h4>
+          <div class="meta">${m.plan.mood}</div>
+          <div>${m.slots.map(s=>`<span class="plan-slot-tag ${s.status==='booked'?'booked':s.status==='pending'?'pending-tag':''}">${formatTimeLabel(s.time)}${s.status!=='open'?' · '+s.status:''}</span>`).join('')}</div>
+        </div>
+      `).join('') : `<div class="empty-state" style="padding:30px 20px;"><div class="big">—</div>Nothing on this day yet.</div>`}
+      <button class="add-slot-btn" id="quickAddBtn">+ Add plan for this day</button>
+    `;
+  } else {
+    dayPanel = `<div class="empty-state" style="padding:30px 20px;"><div class="big">—</div>Tap a day to see or add plans.</div>`;
+  }
+  return `${gridHtml}${dayPanel}`;
+}
+
+function renderAdminPlans(){
+  const cards = plans.map(p => `
+    <div class="admin-card">
+      <h4>${escapeHtml(p.title)}</h4>
+      <div class="meta">${p.mood}</div>
+      <p style="font-size:14px;margin:0 0 10px;color:var(--text-dim);">${escapeHtml(p.description)}</p>
+      <div>${p.slots.map(s=>`<span class="plan-slot-tag ${s.status==='booked'?'booked':s.status==='pending'?'pending-tag':''}">${formatSlot(s)}${s.status!=='open'?' · '+s.status:''}</span>`).join('')}</div>
+      <div class="admin-actions">
+        <button class="btn btn-secondary" data-edit="${p.id}">Edit</button>
+        <button class="btn btn-secondary" data-delete="${p.id}">Delete</button>
+      </div>
+    </div>
+  `).join('');
+  return `
+    ${cards}
+    <button class="add-slot-btn" id="newPlanBtn" style="margin-top:6px;">+ New plan</button>
+  `;
+}
+
+function renderAdminRequests(){
+  if(!requests.length) return `<div class="empty-state"><div class="big">—</div>No requests yet.</div>`;
+  const sorted = [...requests].sort((a,b)=>{
+    const order = {pending:0, proposed:1, confirmed:2, declined:3};
+    return order[a.status]-order[b.status] || b.createdAt-a.createdAt;
+  });
+  return sorted.map(r => `
+    <div class="admin-card">
+      <span class="req-status ${r.status}">${r.status}</span>
+      <h4>${escapeHtml(r.name)}</h4>
+      <div class="meta">${escapeHtml(r.contact)}</div>
+      <p style="font-size:14px;margin:0 0 6px;"><strong>${escapeHtml(r.planTitle)}</strong> · ${r.status==='proposed' ? r.proposedSlotLabel+' (proposed)' : r.slotLabel}</p>
+      ${r.note ? `<p style="font-size:13px;color:var(--text-dim);margin:0 0 8px;">"${escapeHtml(r.note)}"</p>` : ''}
+      ${r.status==='pending' ? `
+        <div class="admin-actions">
+          <button class="btn btn-mint" data-confirm="${r.id}">Confirm</button>
+          <button class="btn btn-secondary" data-decline="${r.id}">Decline</button>
+          <button class="btn btn-secondary" data-propose="${r.id}">Propose new time</button>
+        </div>
+      ` : ''}
+    </div>
+  `).join('');
+}
+
+function openPlanForm(existingId, presetDate){
+  const existing = existingId ? plans.find(p=>p.id===existingId) : null;
+  const slotsState = existing ? existing.slots.map(s=>({...s})) : [{id:uid(), date: presetDate||'', time:'19:00', status:'open'}];
+  const root = document.getElementById('modalRoot');
+
+  function slotsHtml(){
+    return slotsState.map((s,i)=>`
+      <div class="slot-row">
+        <input type="date" data-slot-date="${i}" value="${s.date||''}">
+        <input type="time" data-slot-time="${i}" value="${s.time||''}">
+        <button class="remove-x" data-remove-slot="${i}">×</button>
+      </div>
+    `).join('');
+  }
+
+  function draw(){
+    root.innerHTML = `
+      <div class="overlay" id="planOverlay">
+        <div class="modal">
+          <h4>${existing ? 'Edit plan' : 'New plan'}</h4>
+          <div class="field"><label>Title</label><input type="text" id="pfTitle" value="${existing?escapeHtml(existing.title):''}" placeholder="Rooftop drinks, low pressure"></div>
+          <div class="field"><label>Description</label><textarea id="pfDesc" placeholder="What's the vibe?">${existing?escapeHtml(existing.description):''}</textarea></div>
+          <div class="field"><label>Mood</label><input type="text" id="pfMood" value="${existing?existing.mood:''}" placeholder="chill, romantic, foodie..."></div>
+          <div class="field">
+            <label>Time slots</label>
+            <div id="slotList">${slotsHtml()}</div>
+            <button class="add-slot-btn" id="addSlotBtn" type="button" style="margin-top:4px;">+ add a slot</button>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-secondary" id="pfCancel">Cancel</button>
+            <button class="btn btn-primary" id="pfSave">${existing?'Save changes':'Add plan'}</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.getElementById('pfCancel').onclick = closeModal;
+    document.getElementById('planOverlay').onclick = (e)=>{ if(e.target.id==='planOverlay') closeModal(); };
+    document.getElementById('addSlotBtn').onclick = ()=>{ slotsState.push({id:uid(), date: presetDate||'', time:'19:00', status:'open'}); draw(); };
+    root.querySelectorAll('[data-remove-slot]').forEach(btn=>{
+      btn.onclick = ()=>{ slotsState.splice(Number(btn.dataset.removeSlot),1); draw(); };
+    });
+    root.querySelectorAll('[data-slot-date]').forEach(inp=>{
+      inp.oninput = ()=>{ slotsState[Number(inp.dataset.slotDate)].date = inp.value; };
+    });
+    root.querySelectorAll('[data-slot-time]').forEach(inp=>{
+      inp.oninput = ()=>{ slotsState[Number(inp.dataset.slotTime)].time = inp.value; };
+    });
+    document.getElementById('pfSave').onclick = async ()=>{
+      const title = document.getElementById('pfTitle').value.trim();
+      const desc = document.getElementById('pfDesc').value.trim();
+      const mood = document.getElementById('pfMood').value.trim() || 'chill';
+      const finalSlots = slotsState.filter(s=>s.date && s.time);
+      if(!title || !finalSlots.length){
+        alert('Add a title and at least one complete date + time.');
+        return;
+      }
+      if(existing){
+        existing.title=title; existing.description=desc; existing.mood=mood; existing.slots=finalSlots;
+      } else {
+        plans.push({id:uid(), title, description:desc, mood, slots:finalSlots});
+      }
+      await db.set('plans', plans);
+      closeModal(); render();
+    };
+  }
+  draw();
+}
+
+function openQuickSlotModal(dateStr){
+  const root = document.getElementById('modalRoot');
+  const options = plans.map(p=>`<option value="${p.id}">${escapeHtml(p.title)}</option>`).join('');
+  root.innerHTML = `
+    <div class="overlay" id="quickOverlay">
+      <div class="modal">
+        <h4>Add to ${formatDateLabel(dateStr)}</h4>
+        <p class="modal-sub">Add a time to an existing plan, or start a new one.</p>
+        <div class="field">
+          <label>Plan</label>
+          <select class="quick-select" id="quickPlanSelect">
+            <option value="__new__">+ New plan</option>
+            ${options}
+          </select>
+        </div>
+        <div class="field" id="quickTimeField">
+          <label>Time</label>
+          <input type="time" id="quickTimeInput" value="19:00">
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="quickCancel">Cancel</button>
+          <button class="btn btn-primary" id="quickSave">Continue</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('quickCancel').onclick = closeModal;
+  document.getElementById('quickOverlay').onclick = (e)=>{ if(e.target.id==='quickOverlay') closeModal(); };
+  document.getElementById('quickSave').onclick = async ()=>{
+    const planId = document.getElementById('quickPlanSelect').value;
+    if(planId === '__new__'){
+      closeModal();
+      openPlanForm(null, dateStr);
+      return;
+    }
+    const time = document.getElementById('quickTimeInput').value;
+    if(!time){ alert('Add a time.'); return; }
+    const plan = plans.find(p=>p.id===planId);
+    plan.slots.push({id:uid(), date:dateStr, time, status:'open'});
+    await db.set('plans', plans);
+    closeModal(); render();
+  };
+}
+
+function openProposeForm(reqId){
+  const req = requests.find(r=>r.id===reqId);
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+    <div class="overlay" id="proposeOverlay">
+      <div class="modal">
+        <h4>Propose a new time</h4>
+        <p class="modal-sub">For ${escapeHtml(req.name)} · ${escapeHtml(req.planTitle)}</p>
+        <div class="field"><label>New time</label><input type="text" id="newTimeInput" placeholder="e.g. Sat · 6:00 PM"></div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="proposeCancel">Cancel</button>
+          <button class="btn btn-primary" id="proposeSave">Send</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('proposeCancel').onclick = closeModal;
+  document.getElementById('proposeOverlay').onclick = (e)=>{ if(e.target.id==='proposeOverlay') closeModal(); };
+  document.getElementById('proposeSave').onclick = async ()=>{
+    const val = document.getElementById('newTimeInput').value.trim();
+    if(!val){ alert('Add a time.'); return; }
+    req.status = 'proposed';
+    req.proposedSlotLabel = val;
+    await db.set('requests', requests);
+    closeModal(); render();
+  };
+}
+
+/* ---------- event wiring ---------- */
+function attachHandlers(){
+  document.querySelectorAll('.chip').forEach(chip=>{
+    chip.onclick = ()=>{ activeMoodFilter = chip.dataset.mood; render(); };
+  });
+  document.querySelectorAll('[data-public-tab]').forEach(btn=>{
+    btn.onclick = ()=>{ publicTab = btn.dataset.publicTab; selectedDate = null; render(); };
+  });
+  document.querySelectorAll('[data-cal-date]').forEach(cell=>{
+    cell.onclick = ()=>{ selectedDate = cell.dataset.calDate; render(); };
+  });
+  const calPrev = document.querySelector('[data-cal-prev]');
+  if(calPrev) calPrev.onclick = ()=>{
+    calMonth--; if(calMonth<0){ calMonth=11; calYear--; }
+    render();
+  };
+  const calNext = document.querySelector('[data-cal-next]');
+  if(calNext) calNext.onclick = ()=>{
+    calMonth++; if(calMonth>11){ calMonth=0; calYear++; }
+    render();
+  };
+  const quickAddBtn = document.getElementById('quickAddBtn');
+  if(quickAddBtn) quickAddBtn.onclick = ()=> openQuickSlotModal(selectedDate);
+  document.querySelectorAll('.slot-btn:not([disabled])').forEach(btn=>{
+    btn.onclick = ()=> openClaimModal(btn.dataset.plan, btn.dataset.slot);
+  });
+  const statusBtn = document.getElementById('checkStatusBtn');
+  if(statusBtn) statusBtn.onclick = openStatusModal;
+  const adminEntry = document.getElementById('adminEntryBtn');
+  if(adminEntry) adminEntry.onclick = ()=> unlocked ? (view='admin', render()) : openAdminLogin();
+
+  const exitAdmin = document.getElementById('exitAdmin');
+  if(exitAdmin) exitAdmin.onclick = ()=>{ view='public'; render(); };
+
+  const logoutAdmin = document.getElementById('logoutAdmin');
+  if(logoutAdmin) logoutAdmin.onclick = ()=>{ signOutAdmin(); unlocked=false; view='public'; render(); };
+
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.onclick = ()=>{ adminTab = tab.dataset.tab; selectedDate = null; render(); };
+  });
+
+  const newPlanBtn = document.getElementById('newPlanBtn');
+  if(newPlanBtn) newPlanBtn.onclick = ()=> openPlanForm(null);
+
+  document.querySelectorAll('[data-edit]').forEach(btn=>{
+    btn.onclick = ()=> openPlanForm(btn.dataset.edit);
+  });
+  document.querySelectorAll('[data-delete]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      if(confirm('Delete this plan?')){
+        plans = plans.filter(p=>p.id!==btn.dataset.delete);
+        await db.set('plans', plans);
+        render();
+      }
+    };
+  });
+  document.querySelectorAll('[data-confirm]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const req = requests.find(r=>r.id===btn.dataset.confirm);
+      req.status = 'confirmed';
+      const plan = plans.find(p=>p.id===req.planId);
+      if(plan){ const s = plan.slots.find(sl=>sl.id===req.slotId); if(s) s.status='booked'; }
+      await db.set('plans', plans);
+      await db.set('requests', requests);
+      render();
+    };
+  });
+  document.querySelectorAll('[data-decline]').forEach(btn=>{
+    btn.onclick = async ()=>{
+      const req = requests.find(r=>r.id===btn.dataset.decline);
+      req.status = 'declined';
+      const plan = plans.find(p=>p.id===req.planId);
+      if(plan){ const s = plan.slots.find(sl=>sl.id===req.slotId); if(s) s.status='open'; }
+      await db.set('plans', plans);
+      await db.set('requests', requests);
+      render();
+    };
+  });
+  document.querySelectorAll('[data-propose]').forEach(btn=>{
+    btn.onclick = ()=> openProposeForm(btn.dataset.propose);
+  });
+}
+
+/* ---------- boot ---------- */
+(async function init(){
+  document.getElementById('content').innerHTML = `<div class="empty-state">Loading plans…</div>`;
+  if(getSession()) unlocked = true;
+  await loadAll();
+  render();
+})();
+</script>
+</body>
+</html>
