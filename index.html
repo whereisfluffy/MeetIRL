@@ -1372,6 +1372,7 @@ function attachHandlers(){
   if(logoutAdmin) logoutAdmin.onclick = ()=>{ signOutAdmin(); unlocked=false; view='public'; render(); };
 
   document.querySelectorAll('.tab').forEach(tab=>{
+    if(tab.dataset.tab === undefined) return; // skip public list/calendar toggle, handled above
     tab.onclick = ()=>{ adminTab = tab.dataset.tab; selectedDate = null; render(); };
   });
 
